@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0  # Still need full history for commit count
       
       - name: Get version
         id: version
@@ -61,11 +63,6 @@ jobs:
           echo "Installation complete! You can now run ./hello"
           EOF
           chmod +x install.sh
-
-      - name: Create Git tag
-        run: |
-          git tag v${{ steps.version.outputs.version }}
-          git push --tags
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
