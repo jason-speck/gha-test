@@ -40,11 +40,16 @@ jobs:
         run: |
           pyinstaller hello.spec
       
+      - name: Sign binary
+        if: runner.os == 'macOS'
+        run: codesign --force --sign - ./dist/hello
+      
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: hello-macos
-          path: dist/*
+          name: hello
+          path: dist/hello
+          compression-level: 0  # No compression since it's already a binary
   
   
     
