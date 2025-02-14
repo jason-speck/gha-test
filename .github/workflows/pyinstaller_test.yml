@@ -1,0 +1,43 @@
+name: My first Workflow
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+defaults:
+  shell: bash
+
+jobs:
+  MyFirstJob:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Say Hello
+        run: echo "👋 Hello World!"
+      
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+      
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller hello.spec
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: hello-macos
+          path: dist/*
+  
+  
+    
