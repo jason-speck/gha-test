@@ -22,10 +22,10 @@ jobs:
         run: |
           # Read major.minor from version.txt
           BASE_VERSION=$(cat version.txt)
-          # Get number of commits on main for patch version
+          # Get number of commits for patch version
           PATCH=$(git rev-list --count HEAD)
-          # Combine them
-          VERSION="${BASE_VERSION}.${PATCH}"
+          # Combine them (ensure no spaces)
+          VERSION="${BASE_VERSION// /}.${PATCH}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
       - name: Set up Python

@@ -1,4 +1,12 @@
 import webview
+from importlib.metadata import version
+
+try:
+    __version__ = version("hello")
+except ImportError:
+    __version__ = "0.1"  # Fallback for development
+
+__version_info__ = (0, 1)  # (major, minor)
 
 class Api:
     def get_message(self):
