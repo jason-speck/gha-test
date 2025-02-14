@@ -40,16 +40,39 @@ jobs:
         run: |
           pyinstaller hello.spec
       
-      - name: Sign binary
+      - name: Prepare artifact
         if: runner.os == 'macOS'
-        run: codesign --force --sign - ./dist/hello
-      
+        run: |
+          cd dist
+          chmod +x hello
+          tar czf hello.tar.gz hello
+          cat > install.sh << 'EOF'
+          #!/bin/bash
+          # Simple installer for hello application
+          
+          # Get the directory of this script
+          SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+          
+          # Extract the executable
+          tar xzf "$SCRIPT_DIR/hello.tar.gz"
+          
+          # Remove quarantine attribute
+          xattr -d com.apple.quarantine hello 2>/dev/null || true
+          
+          # Make executable
+          chmod +x hello
+          
+          echo "Installation complete! You can now run ./hello"
+          EOF
+          chmod +x install.sh
+          tar czf hello_with_installer.tar.gz hello.tar.gz install.sh
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: hello
-          path: dist/hello
-          compression-level: 0  # No compression since it's already a binary
+          name: hello_with_installer.tar.gz
+          path: dist/hello_with_installer.tar.gz
+          compression-level: 0
   
   
     
