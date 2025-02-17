@@ -6,6 +6,7 @@ on:
       - completed
     branches:
       - jason/fake-main
+  workflow_dispatch:  # Add manual trigger for testing
 
 permissions:
   contents: write  # Needed for creating releases
