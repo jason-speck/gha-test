@@ -5,7 +5,7 @@ on:
     types:
       - completed
     branches:
-      - main
+      - jason/fake-main
 
 permissions:
   contents: write  # Needed for creating releases
