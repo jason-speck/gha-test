@@ -8,16 +8,53 @@ defaults:
   run:
     shell: bash
 jobs:
-  MyFirstJob:
-    runs-on: ubuntu-latest  
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            artifact_name: macos
+            needs_installer: true
+          - os: ubuntu-latest
+            artifact_name: linux
+            needs_installer: false
+          - os: windows-latest
+            artifact_name: windows
+            needs_installer: false
+    runs-on: ${{ matrix.os }}
     steps:
-      - run: echo "👋 Hello World!"
       - name: Checkout
         uses: actions/checkout@v4.2.2
-      - name: List files in repository
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
         run: |
-          echo "The repository ${{ github.repository }} contains the following files:"
-          tree
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+          
+      - name: Build binary
+        run: pyinstaller --onefile main.py
+          
+      - name: Upload binary with installer
+        if: matrix.needs_installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.artifact_name }}
+          path: |
+            dist/*
+            install.sh
+
+      - name: Upload binary without installer
+        if: "!matrix.needs_installer"
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.artifact_name }}
+          path: dist/*
   
   
     
