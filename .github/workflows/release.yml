@@ -94,15 +94,17 @@ jobs:
             To reject: Delete this draft release
 
       # Notify PR author that release is ready for testing
-      # Creates a comment with a link to the draft release
+      # Only runs if the workflow was triggered by a PR
       - name: Comment on PR
+        if: github.event.workflow_run.pull_requests != null && github.event.workflow_run.pull_requests[0] != null
         uses: actions/github-script@v7
         with:
           script: |
+            const pr = context.payload.workflow_run.pull_requests[0];
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.name,
-              issue_number: context.issue.number,
+              issue_number: pr.number,
               body: `🚀 New build v${process.env.VERSION} ready for testing!
               
               [Click here to test the draft release](${context.serverUrl}/${context.repo.owner}/${context.repo.name}/releases)`
