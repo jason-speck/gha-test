@@ -1,0 +1,52 @@
+name: Create Release
+on:
+  workflow_run:
+    workflows: ["EXE builder"]
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: write  # Needed for creating releases
+
+jobs:
+  create_draft:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        
+      - name: Download all artifacts
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: pyinstaller_test.yml
+          workflow_conclusion: success
+          run_id: ${{ github.event.workflow_run.id }}
+          
+      - name: Get version from artifacts
+        id: version
+        run: |
+          # Extract version from any artifact name
+          VERSION=$(ls hello-*-* | head -n1 | cut -d- -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }} (Pending Review)
+          draft: true  # Creates as draft for manual review
+          files: |
+            hello-*-*/hello*
+            hello-*-macos/install.sh
+          body: |
+            ## ⚠️ This release is pending review
+            
+            ### Review Checklist:
+            - [ ] Binaries have been tested
+            - [ ] Version numbers are correct
+            
+            To approve: Edit this release and click "Publish release"
+            To reject: Delete this draft release 
