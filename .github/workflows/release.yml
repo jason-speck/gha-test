@@ -1,12 +1,6 @@
 name: Create Release
 on:
-  workflow_run:
-    workflows: ["EXE builder"]
-    types:
-      - completed
-    branches:
-      - jason/fake-main
-  workflow_dispatch:  # Add manual trigger for testing
+  workflow_dispatch:
 
 permissions:
   contents: write  # Needed for creating releases
