@@ -34,13 +34,30 @@ jobs:
       - name: Get version
         id: version
         run: |
-          # Read major.minor from version.txt
+          # Read major.minor from version.txt (e.g., "0.2")
           BASE_VERSION=$(cat version.txt)
-          # Get number of commits for patch version
-          PATCH=$(git rev-list --count HEAD)
-          # Combine them (ensure no spaces)
+          
+          # Create base tag name (e.g., "v0.2")
+          TAG="v${BASE_VERSION// /}"
+          
+          # Find the commit hash where version.txt was last modified
+          # This is our reference point for when the version was bumped
+          VERSION_COMMIT=$(git log -1 --pretty=format:%H -- version.txt)
+          
+          # Count commits since version.txt was changed, excluding the change commit itself
+          # This gives us our patch number, starting from 0 after each version bump
+          # "^$VERSION_COMMIT^" means: start counting after the parent of the version change commit
+          PATCH=$(git rev-list --count HEAD "^$VERSION_COMMIT^")
+          
+          # Combine base version and patch (e.g., "0.2.3")
           VERSION="${BASE_VERSION// /}.${PATCH}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+          # Create and push a tag for this specific build (e.g., "v0.2.3")
+          # This creates a permanent reference to this exact build
+          BUILD_TAG="${TAG}.${PATCH}"
+          git tag -a "$BUILD_TAG" -m "Build version $VERSION" || true
+          git push origin "$BUILD_TAG" || true
       
       - name: Set up Python
         uses: actions/setup-python@v5
