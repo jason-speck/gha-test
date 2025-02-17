@@ -17,7 +17,7 @@ HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Hello World V0.2</title>
+    <title>Hello World V0.2 bump</title>
     <style>
         body {
             font-family: Arial, sans-serif;
