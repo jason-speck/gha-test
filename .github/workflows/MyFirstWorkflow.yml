@@ -5,7 +5,8 @@ on:
       - main
   workflow_dispatch:
 defaults:
-  shell: bash
+  run:
+    shell: bash
 jobs:
   MyFirstJob:
     runs-on: ubuntu-latest  
