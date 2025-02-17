@@ -33,6 +33,17 @@ jobs:
           VERSION=$(ls hello-*-* | head -n1 | cut -d- -f2)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           
+      - name: Prepare files for release
+        run: |
+          # Create a directory for renamed files
+          mkdir release-files
+          
+          # Copy and rename files with platform suffix
+          cp hello-*-linux/hello* release-files/hello-linux 2>/dev/null || true
+          cp hello-*-windows/hello* release-files/hello-windows.exe 2>/dev/null || true
+          cp hello-*-macos/hello* release-files/hello-macos 2>/dev/null || true
+          cp hello-*-macos/install.sh release-files/install.sh 2>/dev/null || true
+          
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -40,10 +51,7 @@ jobs:
           name: Release v${{ steps.version.outputs.version }} (Pending Review)
           draft: true  # Creates as draft for manual review
           files: |
-            hello-*-linux/hello*
-            hello-*-windows/hello*
-            hello-*-macos/hello*
-            hello-*-macos/install.sh
+            release-files/*
           body: |
             ## ⚠️ This release is pending review
             
