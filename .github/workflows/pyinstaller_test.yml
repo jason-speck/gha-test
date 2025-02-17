@@ -5,6 +5,11 @@ on:
       - jason/fake-main
   workflow_dispatch:
 
+# Add this concurrency group
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write  # Allows pushing tags
 
