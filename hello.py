@@ -17,7 +17,7 @@ HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Hello World</title>
+    <title>Hello World V0.2</title>
     <style>
         body {
             font-family: Arial, sans-serif;
