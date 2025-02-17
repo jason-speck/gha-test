@@ -14,28 +14,17 @@ defaults:
     shell: bash
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - os: macos-latest
-            artifact_name: macos
-            needs_installer: true
-          - os: ubuntu-latest
-            artifact_name: linux
-            needs_installer: false
-          - os: windows-latest
-            artifact_name: windows
-            needs_installer: false
-    runs-on: ${{ matrix.os }}
-    
+  tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
         with:
-          fetch-depth: 0  # Still need full history for commit count
+          fetch-depth: 0
       
-      - name: Get version
+      - name: Get version and create tag
         id: version
         run: |
           # Read major.minor from version.txt (e.g., "0.2")
@@ -60,8 +49,30 @@ jobs:
           # Create and push a tag for this specific build (e.g., "v0.2.3")
           # This creates a permanent reference to this exact build
           BUILD_TAG="${TAG}.${PATCH}"
-          git tag -a "$BUILD_TAG" -m "Build version $VERSION" || true
-          git push origin "$BUILD_TAG" || true
+          git tag -a "$BUILD_TAG" -m "Build version $VERSION"
+          git push origin "$BUILD_TAG"
+
+  build:
+    needs: tag
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            artifact_name: macos
+            needs_installer: true
+          - os: ubuntu-latest
+            artifact_name: linux
+            needs_installer: false
+          - os: windows-latest
+            artifact_name: windows
+            needs_installer: false
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0  # Still need full history for commit count
       
       - name: Set up Python
         uses: actions/setup-python@v5
