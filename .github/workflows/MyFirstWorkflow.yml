@@ -50,7 +50,7 @@ jobs:
             install.sh
 
       - name: Upload binary without installer
-        if: "!matrix.needs_installer"
+        if: ${{ !matrix.needs_installer }}
         uses: actions/upload-artifact@v4
         with:
           name: binary-${{ matrix.artifact_name }}
