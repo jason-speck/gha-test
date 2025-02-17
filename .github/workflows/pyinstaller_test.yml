@@ -1,38 +1,56 @@
+# This workflow builds platform-specific binaries for the application.
+# It runs on pushes to specified branches and can be manually triggered.
+# The process:
+# 1. Creates a version tag based on version.txt + commit count
+# 2. Builds binaries for Windows, Linux, and macOS
+# 3. Uploads artifacts for the release workflow to use
 name: EXE builder
 on:
   push:
     branches:
-      - jason/fake-main
-  workflow_dispatch:
+      - jason/fake-main  # Trigger on pushes to specific branches
+  workflow_dispatch:     # Allow manual triggering of workflow
 
-# Add this concurrency group
+# Ensure only one workflow runs at a time for each branch/PR
+# This prevents race conditions with versioning and tagging
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Need write permissions to create git tags
 permissions:
-  contents: write  # Allows pushing tags
+  contents: write
 
+# Ensure consistent shell usage across different platforms
 defaults:
   run:
     shell: bash
 
 jobs:
+  # First job: Create and push a version tag
+  # This ensures consistent versioning across all builds
   tag:
     runs-on: ubuntu-latest
     outputs:
+      # Make version available to other jobs
       version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
         with:
-          fetch-depth: 0
-      
+          fetch-depth: 0  # Full git history needed for version calculation
+
+      # Configure git for creating tags
+      # Uses GitHub Actions bot identity for audit trail
       - name: Configure Git
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-      
+
+      # Calculate version number and create git tag
+      # Version format: <major>.<minor>.<patch>
+      # - major.minor comes from version.txt
+      # - patch is commit count since last version.txt change
       - name: Get version and create tag
         id: version
         run: |
@@ -42,62 +60,70 @@ jobs:
           # Create base tag name (e.g., "v0.2")
           TAG="v${BASE_VERSION// /}"
           
-          # Find the commit hash where version.txt was last modified
-          # This is our reference point for when the version was bumped
+          # Find when version.txt was last modified
+          # This resets patch number when version is bumped
           VERSION_COMMIT=$(git log -1 --pretty=format:%H -- version.txt)
           
-          # Count commits since version.txt was changed, excluding the change commit itself
-          # This gives us our patch number, starting from 0 after each version bump
-          # "^$VERSION_COMMIT^" means: start counting after the parent of the version change commit
+          # Count commits since version.txt changed
+          # Excludes the version change commit itself
           PATCH=$(git rev-list --count HEAD "^$VERSION_COMMIT^")
           
-          # Combine base version and patch (e.g., "0.2.3")
+          # Combine for full version (e.g., "0.2.3")
           VERSION="${BASE_VERSION// /}.${PATCH}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           
-          # Create and push a tag for this specific build (e.g., "v0.2.3")
-          # This creates a permanent reference to this exact build
+          # Tag this specific build
           BUILD_TAG="${TAG}.${PATCH}"
           git tag -a "$BUILD_TAG" -m "Build version $VERSION"
           git push origin "$BUILD_TAG"
 
+  # Second job: Build binaries for each platform
   build:
-    needs: tag
+    needs: tag  # Wait for version tag to be created
     strategy:
       matrix:
+        # Define build configurations for each platform
         include:
           - os: macos-latest
             artifact_name: macos
-            needs_installer: true
+            needs_installer: true    # macOS needs install script
           - os: ubuntu-latest
             artifact_name: linux
-            needs_installer: false
+            needs_installer: false   # Linux binary is self-contained
           - os: windows-latest
             artifact_name: windows
-            needs_installer: false
+            needs_installer: false   # Windows binary is self-contained
     runs-on: ${{ matrix.os }}
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
         with:
-          fetch-depth: 0
-      
+          fetch-depth: 0  # Full history needed for version info
+
+      # Set up Python environment
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10.11'
+          python-version: '3.10.11'  # Specific version for reproducibility
       
+      # Install build dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
           pip install -r requirements.txt
       
+      # Create binary using PyInstaller
       - name: Build with PyInstaller
         run: |
           pyinstaller hello.spec
       
+      # Create installer script for macOS
+      # This handles:
+      # 1. Quarantine attribute removal
+      # 2. Executable permissions
+      # 3. Installation instructions
       - name: Prepare macOS installer
         if: matrix.needs_installer
         run: |
@@ -117,6 +143,7 @@ jobs:
           EOF
           chmod +x install.sh
 
+      # Upload artifacts for platforms needing installer
       - name: Upload with installer
         if: matrix.needs_installer
         uses: actions/upload-artifact@v4
@@ -126,6 +153,7 @@ jobs:
             dist/hello
             dist/install.sh
 
+      # Upload artifacts for platforms without installer
       - name: Upload without installer
         if: ${{ !matrix.needs_installer }}
         uses: actions/upload-artifact@v4

@@ -1,29 +1,42 @@
+# This workflow creates draft releases with built binaries.
+# It runs automatically after successful builds and can be manually triggered.
+# The process:
+# 1. Downloads build artifacts
+# 2. Packages them by platform
+# 3. Creates a draft release
+# 4. Notifies PR author
 name: Create Release
+
+# Trigger on successful completion of build workflow
 on:
   workflow_run:
-    workflows: ["EXE builder"]
+    workflows: ["EXE builder"]  # Must match build workflow name exactly
     types:
-      - completed
+      - completed              # Run after build workflow completes
     branches:
-      - jason/fake-main
-  workflow_dispatch:
+      - jason/fake-main        # Only for specified branches
+  workflow_dispatch:           # Allow manual triggering
 
-# Add this concurrency group
+# Ensure only one release workflow runs at a time
+# Prevents multiple drafts for the same version
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Need write permissions to create releases
 permissions:
-  contents: write  # Needed for creating releases
+  contents: write
 
 jobs:
   create_draft:
+    # Only run if the build workflow succeeded
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
         
+      # Download artifacts from the build workflow
       - name: Download all artifacts
         uses: dawidd6/action-download-artifact@v3
         with:
@@ -31,32 +44,45 @@ jobs:
           workflow_conclusion: success
           run_id: ${{ github.event.workflow_run.id }}
           
+      # Extract version number from artifact names
       - name: Get version from artifacts
         id: version
         run: |
-          # Extract version from any artifact name
           VERSION=$(ls hello-*-* | head -n1 | cut -d- -f2)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           
+      # Prepare release files
+      # Creates zip archives for each platform
+      # Ensures macOS installer is bundled with its binary
       - name: Prepare files for release
         run: |
-          # Create a directory for renamed files
+          # Create directory structure
           mkdir release-files
+          mkdir -p release-files/hello-linux
+          mkdir -p release-files/hello-windows
+          mkdir -p release-files/hello-macos
           
-          # Copy and rename files with platform suffix
-          cp hello-*-linux/hello* release-files/hello-linux 2>/dev/null || true
-          cp hello-*-windows/hello* release-files/hello-windows.exe 2>/dev/null || true
-          cp hello-*-macos/hello* release-files/hello-macos 2>/dev/null || true
-          cp hello-*-macos/install.sh release-files/install.sh 2>/dev/null || true
+          # Copy files to platform-specific directories
+          cp hello-*-linux/hello* release-files/hello-linux/hello
+          cp hello-*-windows/hello* release-files/hello-windows/hello.exe
+          cp hello-*-macos/hello* release-files/hello-macos/hello
+          cp hello-*-macos/install.sh release-files/hello-macos/
           
+          # Create platform-specific zip archives
+          cd release-files
+          zip -r hello-linux.zip hello-linux
+          zip -r hello-windows.zip hello-windows
+          zip -r hello-macos.zip hello-macos
+          
+      # Create draft release with all assets
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          name: Release v${{ steps.version.outputs.version }} (Pending Review)
-          draft: true  # Creates as draft for manual review
+          name: Release v${{ steps.version.outputs.version }}
+          draft: true  # Create as draft for manual review
           files: |
-            release-files/*
+            release-files/*.zip
           body: |
             ## ⚠️ This release is pending review
             
@@ -66,3 +92,25 @@ jobs:
             
             To approve: Edit this release and click "Publish release"
             To reject: Delete this draft release
+
+      # Notify PR author that release is ready for testing
+      # Creates a comment with a link to the draft release
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              issue_number: context.issue.number,
+              body: `🚀 New build v${process.env.VERSION} ready for testing!
+              
+              [Click here to test the draft release](${context.serverUrl}/${context.repo.owner}/${context.repo.name}/releases)`
+            })
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+
+    # Link to the release in GitHub UI
+    environment:
+      name: testing
+      url: ${{ steps.create_release.outputs.html_url }}
