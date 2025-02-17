@@ -1,0 +1,15 @@
+name: Manual Release
+on:
+  workflow_run:
+    workflows: ["EXE builder"]
+    types:
+      - completed
+    branches:
+      - jason/fake-main
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "test release" 
