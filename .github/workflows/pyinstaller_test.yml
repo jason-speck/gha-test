@@ -5,6 +5,10 @@ on:
       - jason/fake-main
   workflow_dispatch:
 
+# Add these permissions
+permissions:
+  contents: write  # Allows pushing tags
+
 defaults:
   run:
     shell: bash
