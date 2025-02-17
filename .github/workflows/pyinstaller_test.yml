@@ -2,7 +2,7 @@ name: EXE builder
 on:
   push:
     branches:
-      - main
+      - jason/fake-main
   workflow_dispatch:
 
 defaults:
