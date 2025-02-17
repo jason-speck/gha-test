@@ -40,7 +40,9 @@ jobs:
           name: Release v${{ steps.version.outputs.version }} (Pending Review)
           draft: true  # Creates as draft for manual review
           files: |
-            hello-*-*/hello*
+            hello-*-linux/hello*
+            hello-*-windows/hello*
+            hello-*-macos/hello*
             hello-*-macos/install.sh
           body: |
             ## ⚠️ This release is pending review
