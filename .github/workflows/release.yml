@@ -23,9 +23,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Need write permissions to create releases
+# Need write permissions for releases
 permissions:
-  contents: write
+  contents: write  # Only needed for creating releases
 
 jobs:
   create_draft:
@@ -92,23 +92,6 @@ jobs:
             
             To approve: Edit this release and click "Publish release"
             To reject: Delete this draft release
-
-      # Notify PR author that release is ready for testing
-      # Creates a comment with a link to the draft release
-      - name: Comment on PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.name,
-              issue_number: context.issue.number,
-              body: `🚀 New build v${process.env.VERSION} ready for testing!
-              
-              [Click here to test the draft release](${context.serverUrl}/${context.repo.owner}/${context.repo.name}/releases)`
-            })
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
 
     # Link to the release in GitHub UI
     environment:
