@@ -4,7 +4,6 @@
 # 1. Downloads build artifacts
 # 2. Packages them by platform
 # 3. Creates a draft release
-# 4. Notifies PR author
 name: Create Release
 
 # Trigger on successful completion of build workflow
@@ -14,7 +13,7 @@ on:
     types:
       - completed              # Run after build workflow completes
     branches:
-      - jason/fake-main        # Only for specified branches
+      - main                   # Only for specified branches
   workflow_dispatch:           # Allow manual triggering
 
 # Ensure only one release workflow runs at a time
@@ -28,7 +27,7 @@ permissions:
   contents: write  # Only needed for creating releases
 
 jobs:
-  create_draft:
+  create_draft:  
     # Only run if the build workflow succeeded
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
@@ -76,6 +75,7 @@ jobs:
           
       # Create draft release with all assets
       - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
