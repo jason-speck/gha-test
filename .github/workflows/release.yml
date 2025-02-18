@@ -84,8 +84,7 @@ jobs:
           files: |
             release-files/*.zip
           body: |
-            ## ⚠️ This release is pending review
-            
+         
             ### Review Checklist:
             - [ ] Binaries have been tested
             - [ ] Version numbers are correct
@@ -93,7 +92,4 @@ jobs:
             To approve: Edit this release and click "Publish release"
             To reject: Delete this draft release
 
-    # Link to the release in GitHub UI
-    environment:
-      name: testing
-      url: ${{ steps.create_release.outputs.html_url }}
+
