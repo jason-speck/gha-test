@@ -60,13 +60,17 @@ jobs:
           # Create base tag name (e.g., "v0.2")
           TAG="v${BASE_VERSION// /}"
           
-          # Find when version.txt was last modified
-          # This resets patch number when version is bumped
-          VERSION_COMMIT=$(git log -1 --pretty=format:%H -- version.txt)
+          # Find the last matching version tag and extract its patch number
+          LAST_TAG=$(git tag -l "${TAG}.*" | sort -V | tail -n1 || echo "")
           
-          # Count commits since version.txt changed
-          # Excludes the version change commit itself
-          PATCH=$(git rev-list --count HEAD "^$VERSION_COMMIT^")
+          if [ -z "$LAST_TAG" ]; then
+            # No previous tag exists, start at 0
+            PATCH=0
+          else
+            # Extract patch number from last tag and increment by 1
+            LAST_PATCH=$(echo "$LAST_TAG" | awk -F. '{print $NF}')
+            PATCH=$((LAST_PATCH + 1))
+          fi
           
           # Combine for full version (e.g., "0.2.3")
           VERSION="${BASE_VERSION// /}.${PATCH}"
