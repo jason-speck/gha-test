@@ -60,6 +60,18 @@ jobs:
           # Create base tag name (e.g., "v0.2")
           TAG="v${BASE_VERSION// /}"
           
+          # Check if current commit already has a version tag
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          EXISTING_TAG=$(git tag --points-at $CURRENT_COMMIT | grep "^${TAG}\." || echo "")
+          
+          if [ -n "$EXISTING_TAG" ]; then
+            # Current commit already has a version tag, use it
+            echo "Using existing tag: $EXISTING_TAG"
+            VERSION="${BASE_VERSION// /}.$(echo "$EXISTING_TAG" | awk -F. '{print $NF}')"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
           # Find the last matching version tag and extract its patch number
           LAST_TAG=$(git tag -l "${TAG}.*" | sort -V | tail -n1 || echo "")
           
